@@ -32,11 +32,19 @@ public class JeuxDeMots {
         BufferedReader br2 = new BufferedReader(file);
         String line;
         FileWriter fileWriter = new FileWriter(json);
+        boolean e = true;
+        boolean nt = true;
+        boolean rt = true;
+        boolean r = true;
         fileWriter.write("[\n");
+        fileWriter.write("\t{\n");
         while ((line = br2.readLine()) != null) {
             if (line.length() > 0) {
-                fileWriter.write("\t{\n");
                 if ('e' == line.charAt(0)) {
+                    if (e) {
+                        fileWriter.write("\t\t\"e\":{\n");
+                        e = false;
+                    }
 
                     System.out.println(line);
                     String[] words = line.split(";");
@@ -53,8 +61,8 @@ public class JeuxDeMots {
                     if (words.length == 6) {
                         fileWriter.write("\t\t\t" + "\"" + "formated name" + "\"" + ": " + "\"" + words[5] + "\"" + "\n");
                     }
-                    fileWriter.write("\t\t" + "}\n");
-                    fileWriter.write("\t" + "},\n");
+                    fileWriter.write("\t\t" + "},\n");
+                    /*
 
                 } else if ('r' == line.charAt(0) && 't' == line.charAt(1)) {
                     String[] words = line.split(";");
@@ -76,12 +84,13 @@ public class JeuxDeMots {
                     jsonObject.put("ntname", words[2]);
 
                     jsonObject2.put(words[1], jsonObject);
-                }
+                }*/
 
 
             }
         }
-    }
+    }   fileWriter.write("\t\t" + "},\n");
+        fileWriter.write("\t" + "},\n");
         fileWriter.write("]");
         fileWriter.close();
 
