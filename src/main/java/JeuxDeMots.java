@@ -6,11 +6,52 @@ import org.apache.jena.atlas.json.JsonObject;
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
+
+import org.apache.jena.query.Dataset;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RDFParser;
+import org.apache.jena.riot.system.ErrorHandlerFactory;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 
 public class JeuxDeMots {
 
     //function to read a file and parse to write a json file
 
+
+    public static ArrayList<String> mySplit(String myLine) {
+        ArrayList<String> resultat = new ArrayList<>();
+        String tmp = "";
+        boolean cond = false;
+        for (int i = 0; i < myLine.length(); i++) {
+            if (i + 1 == myLine.length()) {
+                tmp += myLine.charAt(i);
+                resultat.add(tmp);
+            } else {
+                if (myLine.charAt(i) == '\'' && myLine.charAt(i + 1) != ';') {
+                    cond = true;
+                } else if (myLine.charAt(i) == '\'' && myLine.charAt(i + 1) == ';') {
+                    cond = false;
+                }
+                if (cond) {
+                    tmp += myLine.charAt(i);
+                }
+                if (!cond && myLine.charAt(i) != ';') {
+                    tmp += myLine.charAt(i);
+                } else if (!cond && myLine.charAt(i) == ';') {
+                    resultat.add(tmp);
+                    tmp = "";
+                }
+            }
+        }
+        return resultat;
+    }
 
     //function to connect to an api and get the source code of the page
     public static String getSourceCode(String url) throws IOException {
@@ -28,73 +69,67 @@ public class JeuxDeMots {
     //open a file and write a json file
     public static void writeJson(String fileName, String json) throws IOException {
 
+
+
+        JSONArray jsonArrayNT = new JSONArray();
+        JSONArray jsonArrayE = new JSONArray();
+        JSONArray jsonArrayRT = new JSONArray();
+        JSONArray jsonArrayR = new JSONArray();
+
+        //Lecture du fichier TXT ------------------------------
         FileReader file = new FileReader(fileName);
         BufferedReader br2 = new BufferedReader(file);
         String line;
-        FileWriter fileWriter = new FileWriter(json);
-        boolean e = true;
-        boolean nt = true;
-        boolean rt = true;
-        boolean r = true;
-        fileWriter.write("[\n");
-        fileWriter.write("\t{\n");
+        //-----------------------------------------------------
+
         while ((line = br2.readLine()) != null) {
             if (line.length() > 0) {
-                if ('e' == line.charAt(0)) {
-                    if (e) {
-                        fileWriter.write("\t\t\"e\":{\n");
-                        e = false;
-                    }
-
-                    System.out.println(line);
-                    String[] words = line.split(";");
-
-                    fileWriter.write("\t\t" + "\"" + words[1] + "\"" + ": {\n");
-
-                    fileWriter.write("\t\t\t" + "\"" + "name" + "\"" + ": " + "\"" + words[2] + "\"" + ",\n");
-                    fileWriter.write("\t\t\t" + "\"" + "type" + "\"" + ": " + "\"" + words[3] + "\"" + ",\n");
-                    if (words.length == 5) {
-                        fileWriter.write("\t\t\t" + "\"" + "w" + "\"" + ": " + "\"" + words[4] + "\"" + "\n");
-                    } else {
-                        fileWriter.write("\t\t\t" + "\"" + "w" + "\"" + ": " + "\"" + words[4] + "\"" + ",\n");
-                    }
-                    if (words.length == 6) {
-                        fileWriter.write("\t\t\t" + "\"" + "formated name" + "\"" + ": " + "\"" + words[5] + "\"" + "\n");
-                    }
-                    fileWriter.write("\t\t" + "},\n");
-                    /*
+                ArrayList<String> words = mySplit(line);
+                System.out.println(words);
+                JSONObject jsonObject = new JSONObject();
+                if ("e".equals(words.get(0))) {
+                    jsonObject.put("name", words.get(2));
+                    jsonObject.put("type", words.get(3));
+                    jsonObject.put("w", words.get(4));
+                    if (words.size() > 5) jsonObject.put("formated name", words.get(5));
+                    jsonArrayE.put(jsonObject);
 
                 } else if ('r' == line.charAt(0) && 't' == line.charAt(1)) {
-                    String[] words = line.split(";");
-                    jsonObject.put("trname", words[2]);
-                    jsonObject.put("trgpname", words[3]);
-                    jsonObject.put("rthelp", words[4]);
 
-                    jsonObject2.put(words[1], jsonObject);
+                    jsonObject.put("trname", words.get(2));
+                    jsonObject.put("trgpname", words.get(3));
+                    if(words.size() > 4)jsonObject.put("rthelp", words.get(4));
+                    jsonArrayRT.put(jsonObject);
+
                 } else if ('r' == line.charAt(0)) {
-                    String[] words = line.split(";");
-                    jsonObject.put("node1", words[2]);
-                    jsonObject.put("node2", words[3]);
-                    jsonObject.put("type", words[4]);
-                    jsonObject.put("w", words[5]);
 
-                    jsonObject2.put(words[1], jsonObject);
+                    jsonObject.put("node1", words.get(2));
+                    jsonObject.put("node2", words.get(3));
+                    jsonObject.put("type", words.get(4));
+                    jsonObject.put("w", words.get(5));
+                    jsonArrayR.put(jsonObject);
+
                 } else if ('n' == line.charAt(0) && 't' == line.charAt(1)) {
-                    String[] words = line.split(";");
-                    jsonObject.put("ntname", words[2]);
+                    jsonObject.put("ntname", words.get(2));
+                    jsonArrayNT.put(jsonObject);
 
-                    jsonObject2.put(words[1], jsonObject);
-                }*/
+                }
 
 
             }
         }
-    }   fileWriter.write("\t\t" + "},\n");
-        fileWriter.write("\t" + "},\n");
-        fileWriter.write("]");
-        fileWriter.close();
+        JSONObject jsonArrayFinal = new JSONObject();
+        if(jsonArrayR.length()!=0) jsonArrayFinal.put("r", jsonArrayR);
+        if(jsonArrayRT.length()!=0) jsonArrayFinal.put("rt", jsonArrayRT);
+        if(jsonArrayE.length()!=0) jsonArrayFinal.put("e", jsonArrayE);
+        if(jsonArrayNT.length()!=0) jsonArrayFinal.put("nt", jsonArrayNT);
 
-}
+
+        //write the json file
+        FileWriter file2 = new FileWriter(json);
+        file2.write(jsonArrayFinal.toString());
+        file2.close();
+    }
 
     public static void main(String[] args) {
         //Ask to user an word to search
@@ -137,10 +172,28 @@ public class JeuxDeMots {
         }
 
         //create a json file with the content of the file
-        try {
+        /*try {
             writeJson("JeuxDeMots" + word + ".txt", "JeuxDeMots" + word + ".json");
         } catch (IOException e) {
             e.printStackTrace();
+        }*/
+
+        Model model = ModelFactory.createDefaultModel();
+
+        try (InputStream in = new FileInputStream("JeuxDeMots" + word + ".json")) {
+            RDFParser.create()
+                    .source(in)
+                    .lang(RDFLanguages.JSONLD11)
+                    .errorHandler(ErrorHandlerFactory.errorHandlerStrict)
+                    .base("http://example/base")
+                    .parse(model);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+        System.out.println(model);
+
     }
 }
